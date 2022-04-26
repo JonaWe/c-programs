@@ -17,7 +17,8 @@ main (int argc, char *argv[]) {
   }
 
   if (year > 0) {
-    printf("Error: You must provide a positive number!");
+    printf("Error: You must provide a positive number!\n");
+    exit(-1);
   }
 
   // year % 4 == 0 && (year % 100 == 0 => year % 400 == 0)

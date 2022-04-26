@@ -5,11 +5,16 @@
 int
 main (int argc, char *argv[]) {
   if (argc < 2) {
-    printf("usage: pascal <number>\n");
+    printf("Error: usage: pascal <number>\n");
     exit(-1);
   }
 
   int number = atoi(argv[1]);
+
+  if (number < 0) {
+    printf("Error: you must provide a positive number.\n");
+    exit(-1);
+  }
 
   // adds padding on both "sides"
   unsigned long row[number + 2];
