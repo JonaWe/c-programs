@@ -16,7 +16,7 @@ main (int argc, char *argv[]) {
     scanf("%d", &year);
   }
 
-  if (year > 0) {
+  if (year < 0) {
     printf("Error: You must provide a positive number!\n");
     exit(-1);
   }
