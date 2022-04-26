@@ -12,15 +12,19 @@ main (int argc, char *argv[]) {
   }
   // no arg provided -> reading from stdin
   else {
-    printf("Bitte Jahr eingeben: ");
+    printf("Please enter a year: ");
     scanf("%d", &year);
+  }
+
+  if (year > 0) {
+    printf("Error: You must provide a positive number!");
   }
 
   // year % 4 == 0 && (year % 100 == 0 => year % 400 == 0)
   if (year % 4 == 0 && (!(year % 100 == 0) || year % 400 == 0)) {
-    printf("%d ist ein Schaltjahr.\n", year);
+    printf("%d is a leap year.\n", year);
   } else {
-    printf("%d ist kein Schaltjahr.\n", year);
+    printf("%d is not a leap year.\n", year);
   }
 
   exit(0);
