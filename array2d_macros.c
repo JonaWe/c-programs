@@ -46,21 +46,21 @@ int main(int argc, char const *argv[])
       if (!*end_ptr1 && !*end_ptr2)
       {
         // unsigned int
-        ALLOC_ARRAY2D(arr1, unsigned int, dim1, dim2, 42);
+        ALLOC_BLOCK2D(arr1, unsigned int, dim1, dim2, 42);
         arr1[dim1 - 1][dim2 - 1] = 'a';
         PRINT_ARRAY2D(arr1, dim1, dim2, %u);
-        DEL_ARRAY2D(arr1, dim1);
+        DEL_BLOCK2D(arr1);
 
         // long double
-        ALLOC_ARRAY2D(arr2, long double, dim1, dim2, ((float)22) / 7);
+        ALLOC_BLOCK2D(arr2, long double, dim1, dim2, ((float)22) / 7);
         arr2[0][0] = 1.8125;
         PRINT_ARRAY2D(arr2, dim1, dim2, %Lf);
-        DEL_ARRAY2D(arr2, dim1);
+        DEL_BLOCK2D(arr2);
 
         // unsigned long long
-        ALLOC_ARRAY2D(arr3, unsigned long long, dim1, dim2, -1);
+        ALLOC_BLOCK2D(arr3, unsigned long long, dim1, dim2, -1);
         PRINT_ARRAY2D(arr3, dim1, dim2, %llu);
-        DEL_ARRAY2D(arr3, dim1);
+        DEL_BLOCK2D(arr3);
       }
       else
       {
@@ -76,24 +76,24 @@ int main(int argc, char const *argv[])
   }
 
   // char
-  ALLOC_ARRAY2D(arr4, char, 4, 3, 'u');
+  ALLOC_BLOCK2D(arr4, char, 4, 3, 'u');
   arr4[1][2] = 's';
   arr4[3][0] = 's';
   PRINT_ARRAY2D(arr4, 4, 3, %c);
-  DEL_ARRAY2D(arr4, 4);
+  DEL_BLOCK2D(arr4);
 
   // unsigned short
-  ALLOC_ARRAY2D(arr5, unsigned short, 6, 6, -1);
+  ALLOC_BLOCK2D(arr5, unsigned short, 6, 6, -1);
   arr5[4][2] = 'a' - '7';
   PRINT_ARRAY2D(arr5, 6, 6, %u);
-  DEL_ARRAY2D(arr5, 6);
+  DEL_BLOCK2D(arr5);
 
   // float
-  ALLOC_ARRAY2D(arr6, float, 3, 2, ((float)22 / 7) - 1.125);
+  ALLOC_BLOCK2D(arr6, float, 3, 2, ((float)22 / 7) - 1.125);
   arr6[0][1] = ((float)1) / (1 + 2);
   arr6[2][0] = -2;
   PRINT_ARRAY2D(arr6, 3, 2, %f);
-  DEL_ARRAY2D(arr6, 3);
+  DEL_BLOCK2D(arr6);
 
   return EXIT_SUCCESS;
 }
