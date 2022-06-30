@@ -1,3 +1,7 @@
+struct list_head {
+  struct list_head *next, *prev;
+};
+
 /* initialize "shortcut links" for empty list */
 extern void
 list_init(struct list_head *head);
