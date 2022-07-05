@@ -21,6 +21,9 @@ int main(int argc, char **argv) {
 
         if (pid == 0) {
             printf("I'm a child\n");
+        } else if (pid == -1) {
+            printf("Fork failed! Could not create child process\n");
+            break;
         } else {
             printf("I'm the parent and I created a child with pid = %d\n", pid);
             break;
