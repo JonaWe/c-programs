@@ -264,10 +264,6 @@ void kill_job(int id, proc_node *head) {
     proc_node *node = get_job_by_id(id, head);
     if (node != NULL && node->finished != 1) {
         kill(node->pid, SIGKILL);
-        //int status;
-        //pid_t ret_val = waitpid(node->pid, &status, 0);
-        //node->status = status;
-        //node->finished = 1;
     } else {
         printf("There is no running job with the id %d\n", id);
     }
@@ -308,7 +304,9 @@ int main() {
 
         int tokens = makeargv(input, DELIMITERS, &args);
 
-        if (tokens == 1 && strcmp(args[0], "quit") == 0) {
+        if (tokens == 0) {
+            continue;
+        } else if (tokens == 1 && strcmp(args[0], "quit") == 0) {
             exit(0);
         } else if (tokens == 1 && strcmp(args[0], "list") == 0) {
             print_proc_list(anker);
