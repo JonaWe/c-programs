@@ -155,11 +155,19 @@ void run(char **args, int tokens) {
         // if the above command executed successfully the child process will not return
         printf("[invalid command]\n");
         exit(0);
+    } else if (pid == -1) {
+        // this will be executed from the parent process if the fork failed
+        printf("[fork failed - could not run command]");
     } else {
         // this will be executed from the parent process
         int status;
         pid_t ret_val = waitpid(pid, &status, 0);
-        printf("[status=%d]\n", status);
+        if (ret_val != -1) {
+            printf("[status=%d]\n", status);
+        } else if (errno == ECHILD) {
+            // process with pid not found
+            // this error can be ignored
+        }
     }
 }
 
@@ -180,6 +188,8 @@ void start_job(char **args, proc_node *head, int tokens) {
         execvp(args[0], args);
         printf("\n[could not start job]\n");
         exit(-1);
+    } else if (pid == -1) {
+        printf("[fork failed - could not start job]");
     } else {
         proc_node *new_elem = malloc(sizeof(proc_node));
         list_add_tail(&new_elem->head, &head->head);
@@ -226,9 +236,11 @@ void update_proc_list(proc_node *head) {
 
         int status;
         pid_t ret_val = waitpid(tmp->pid, &status, WNOHANG);
-        printf("pid: %d status: %d ret_val: %d\n", tmp->pid, status, ret_val);
 
-        if (ret_val != 0) {
+        if (ret_val == -1 && errno == ECHILD) {
+            // process does not exist or is not a child of the shell process therefore it is set to finished
+            tmp->finished = 1;
+        } else if (ret_val != 0) {
             tmp->finished = 1;
             tmp->status = status;
         }
