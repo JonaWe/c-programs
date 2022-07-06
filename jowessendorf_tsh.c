@@ -1,5 +1,5 @@
-//#include "jowessendorf_dll.h"
-//#include "makeargv.h"
+#include "jowessendorf_dll.h"
+#include "makeargv.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,129 +7,20 @@
 #include <unistd.h>
 #include <wait.h>
 #include <limits.h>
-
-
-#include <stddef.h>
 #include <errno.h>
-struct list_head {
-  struct list_head *next, *prev;
-};
 
-/* initialize "shortcut links" for empty list */
-void
-list_init(struct list_head *head) {
-  head->next = head;
-  head->prev = head;
-}
-
-/* insert new entry after the specified head */
-void
-list_add(struct list_head *newElement, struct list_head *head) {
-  struct list_head *tmp_node = head->next;
-  head->next = newElement;
-
-  newElement->next = tmp_node;
-  newElement->prev = head;
-
-  tmp_node->prev = newElement;
-}
-
-/* insert new entry before the specified head */
-void
-list_add_tail(struct list_head *newElement, struct list_head *head) {
-  struct list_head *tmp_node = head->prev;
-  head->prev = newElement;
-
-  newElement->next = head;
-  newElement->prev = tmp_node;
-
-  tmp_node->next = newElement;
-}
-
-/* deletes entry from list, reinitializes it (next = prev = 0),
-and returns pointer to entry */
-struct list_head*
-list_del(struct list_head *entry) {
-  entry->prev->next = entry->next;
-  entry->next->prev = entry->prev;
-  entry->next = NULL;
-  entry->prev = NULL;
-  return entry;
-}
-
-/* delete entry from one list and insert after the specified head */
-void
-list_move(struct list_head *entry, struct list_head *head) {
-  struct list_head *tmp = list_del(entry);
-  list_add(tmp, head);
-
-}
-
-/* delete entry from one list and insert before the specified head */
-void
-list_move_tail(struct list_head *entry, struct list_head *head) {
-  struct list_head *tmp = list_del(entry);
-  list_add_tail(tmp, head);
-}
-
-/* tests whether a list is empty */
-int
-list_empty(struct list_head *head) {
-  return head->next == head && head->prev == head;
-}
-
-int makeargv(const char *s, const char *delimiters, char ***argvp) {
-   int error;
-   int i;
-   int numtokens;
-   const char *snew;
-   char *t;
-
-   if ((s == NULL) || (delimiters == NULL) || (argvp == NULL)) {
-      errno = EINVAL;
-      return -1;
-   }
-   *argvp = NULL;                           
-   snew = s + strspn(s, delimiters);         /* snew is real start of string */
-   if ((t = malloc(strlen(snew) + 1)) == NULL) 
-      return -1; 
-   strcpy(t, snew);               
-   numtokens = 0;
-   if (strtok(t, delimiters) != NULL)     /* count the number of tokens in s */
-      for (numtokens = 1; strtok(NULL, delimiters) != NULL; numtokens++) ; 
-
-                             /* create argument array for ptrs to the tokens */
-   if ((*argvp = malloc((numtokens + 1)*sizeof(char *))) == NULL) {
-      error = errno;
-      free(t);
-      errno = error;
-      return -1; 
-   } 
-                        /* insert pointers to tokens into the argument array */
-   if (numtokens == 0) 
-      free(t);
-   else {
-      strcpy(t, snew);
-      **argvp = strtok(t, delimiters);
-      for (i = 1; i < numtokens; i++)
-          *((*argvp) + i) = strtok(NULL, delimiters);
-    } 
-    *((*argvp) + numtokens) = NULL;             /* put in final NULL pointer */
-    return numtokens;
-}     
-
-void freemakeargv(char **argv) {
-   if (argv == NULL)
-      return;
-   if (*argv != NULL)
-      free(*argv);
-   free(argv);
-}
+typedef struct _proc_node {
+    struct list_head head;
+    int id;
+    int pid;
+    int finished;
+    int status;
+    char *cmd;
+} proc_node;
 
 const char *PROMPT = "tsh> ";
 
 const char *DELIMITERS = "\n\t ";
-
 
 void run(char **args, int tokens) {
     char *command = args[0];
@@ -155,22 +46,21 @@ void run(char **args, int tokens) {
         // if the above command executed successfully the child process will not return
         printf("[invalid command]\n");
         exit(0);
+    } else if (pid == -1) {
+        // this will be executed from the parent process if the fork failed
+        printf("[fork failed - could not run command]");
     } else {
         // this will be executed from the parent process
         int status;
         pid_t ret_val = waitpid(pid, &status, 0);
-        printf("[status=%d]\n", status);
+        if (ret_val != -1) {
+            printf("[status=%d]\n", status);
+        } else if (errno == ECHILD) {
+            // process with pid not found
+            // this error can be ignored
+        }
     }
 }
-
-typedef struct _proc_node {
-    struct list_head head;
-    int id;
-    int pid;
-    int finished;
-    int status;
-    char *cmd;
-} proc_node;
 
 void start_job(char **args, proc_node *head, int tokens) {
     // ignore the job which is the first argument
@@ -180,6 +70,8 @@ void start_job(char **args, proc_node *head, int tokens) {
         execvp(args[0], args);
         printf("\n[could not start job]\n");
         exit(-1);
+    } else if (pid == -1) {
+        printf("[fork failed - could not start job]");
     } else {
         proc_node *new_elem = malloc(sizeof(proc_node));
         list_add_tail(&new_elem->head, &head->head);
@@ -226,9 +118,11 @@ void update_proc_list(proc_node *head) {
 
         int status;
         pid_t ret_val = waitpid(tmp->pid, &status, WNOHANG);
-        printf("pid: %d status: %d ret_val: %d\n", tmp->pid, status, ret_val);
 
-        if (ret_val != 0) {
+        if (ret_val == -1 && errno == ECHILD) {
+            // process does not exist or is not a child of the shell process therefore it is set to finished
+            tmp->finished = 1;
+        } else if (ret_val != 0) {
             tmp->finished = 1;
             tmp->status = status;
         }
@@ -264,10 +158,6 @@ void kill_job(int id, proc_node *head) {
     proc_node *node = get_job_by_id(id, head);
     if (node != NULL && node->finished != 1) {
         kill(node->pid, SIGKILL);
-        //int status;
-        //pid_t ret_val = waitpid(node->pid, &status, 0);
-        //node->status = status;
-        //node->finished = 1;
     } else {
         printf("There is no running job with the id %d\n", id);
     }
@@ -308,7 +198,9 @@ int main() {
 
         int tokens = makeargv(input, DELIMITERS, &args);
 
-        if (tokens == 1 && strcmp(args[0], "quit") == 0) {
+        if (tokens == 0) {
+            continue;
+        } else if (tokens == 1 && strcmp(args[0], "quit") == 0) {
             exit(0);
         } else if (tokens == 1 && strcmp(args[0], "list") == 0) {
             print_proc_list(anker);
