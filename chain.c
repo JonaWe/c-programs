@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <unistd.h>
+#include <wait.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -26,6 +27,9 @@ int main(int argc, char **argv) {
             break;
         } else {
             printf("I'm the parent and I created a child with pid = %d\n", pid);
+            int status;
+            waitpid(pid, &status, 0);
+            printf("Child with pid %d done\n", pid);
             break;
         }
     }
