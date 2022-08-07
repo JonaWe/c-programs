@@ -1,0 +1,2 @@
+gcc -Wall -O3 -g -o knn_jowessendorf knn_jowessendorf.c -pthread -lpthread -lm
+./knn_jowessendorf
