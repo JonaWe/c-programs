@@ -274,10 +274,10 @@ double calc_distance(vector_t *v1, vector_t *v2)
     return distance;
 }
 
-int *find_k_nearest_neighbors(vector_t **data, vector_t *vector, int k, interval_t *blocks, int current_block_index)
+int *find_k_nearest_neighbors(vector_t **data, vector_t *vector, interval_t *blocks, int current_block_index)
 {
-    neighbor_t *nearest_neighbors = malloc(sizeof(neighbor_t) * k);
-    for (int i = 0; i < k; i++)
+    neighbor_t *nearest_neighbors = malloc(sizeof(neighbor_t) * k_max);
+    for (int i = 0; i < k_max; i++)
     {
         nearest_neighbors[i].index = -1;
         nearest_neighbors[i].distance = -1;
@@ -287,20 +287,46 @@ int *find_k_nearest_neighbors(vector_t **data, vector_t *vector, int k, interval
         if (blocks[current_block_index].lower <= i && i <= blocks[current_block_index].upper)
             continue;
         double d = calc_distance(vector, data[i]);
-        for (int j = 0; j < k; j++)
+        for (int j = 0; j < k_max; j++)
             if (nearest_neighbors[j].index == -1 || d < nearest_neighbors[j].distance)
             {
-                for (int l = k - 1; l > j; l--)
+                for (int l = k_max - 1; l > j; l--)
                     nearest_neighbors[l] = nearest_neighbors[l - 1];
                 nearest_neighbors[j].index = i;
                 nearest_neighbors[j].distance = d;
                 break;
             }
     }
-    int *indexes = malloc(sizeof(int) * k);
-    for (int i = 0; i < k; i++)
+    int *indexes = malloc(sizeof(int) * k_max);
+    for (int i = 0; i < k_max; i++)
         indexes[i] = nearest_neighbors[i].index;
     return indexes;
+}
+
+int *get_classification(vector_t **data, vector_t *vector, int *neighbors)
+{
+    int *classifications = malloc(sizeof(int) * k_max);
+    for (int k = 0; k < k_max; k++)
+        classifications[k] = -1;
+    for (int k = 0; k < k_max; k++)
+    {
+        int *class_cout = malloc(sizeof(int) * classes);
+        for (int i = 0; i < classes; i++)
+            class_cout[i] = 0;
+        for (int i = 0; i < k; i++)
+            class_cout[data[neighbors[i]]->class]++;
+
+        int max = 0;
+        int max_index = 0;
+        for (int i = 0; i < classes; i++)
+            if (class_cout[i] >= max)
+            {
+                max = class_cout[i];
+                max_index = i;
+            }
+        classifications[k] = max_index;
+    }
+    return classifications;
 }
 
 int main(int argc, char **argv)
@@ -342,10 +368,12 @@ int main(int argc, char **argv)
     for (int i = 0; i < b; i++)
         for (int j = block_indices[i].lower; j <= block_indices[i].upper; j++)
         {
-            int *neighbors = find_k_nearest_neighbors(data, data[j], k_max, block_indices, i);
-            for (int l = 0; l < k_max; l++)
-                if (neighbors[l] != -1)
-                    printf("%d %d\n", j, neighbors[l]);
+            int *neighbors = find_k_nearest_neighbors(data, data[j], block_indices, i);
+            int *classifications = get_classification(data, data[j], neighbors);
+            printf("Index: %d: ", j);
+            for (int k = 0; k < k_max; k++)
+                printf("%d, ", classifications[k]);
+            printf("\n");
         }
 
     thread_pool_t *thread_pool = malloc(sizeof(thread_pool_t) + n_threads * sizeof(pthread_t));
