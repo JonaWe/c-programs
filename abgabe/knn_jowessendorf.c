@@ -307,23 +307,17 @@ int *get_classification(vector_t **data, vector_t *vector, int *neighbors)
 {
     int *classifications = malloc(sizeof(int) * k_max);
     for (int k = 0; k < k_max; k++)
-        classifications[k] = -1;
-    for (int k = 0; k < k_max; k++)
     {
         int *class_cout = malloc(sizeof(int) * classes);
         for (int i = 0; i < classes; i++)
             class_cout[i] = 0;
-        for (int i = 0; i < k; i++)
+        for (int i = 0; i <= k; i++)
             class_cout[data[neighbors[i]]->class]++;
 
-        int max = 0;
         int max_index = 0;
         for (int i = 0; i < classes; i++)
-            if (class_cout[i] >= max)
-            {
-                max = class_cout[i];
+            if (class_cout[i] >= class_cout[max_index])
                 max_index = i;
-            }
         classifications[k] = max_index;
     }
     return classifications;
@@ -369,10 +363,15 @@ int main(int argc, char **argv)
         for (int j = block_indices[i].lower; j <= block_indices[i].upper; j++)
         {
             int *neighbors = find_k_nearest_neighbors(data, data[j], block_indices, i);
+            printf("Nearest neighbor for %d: ", j);
+            for (int k = 0; k < k_max; k++)
+                printf("%d, ", neighbors[k]);
+            printf("\n");
             int *classifications = get_classification(data, data[j], neighbors);
-            printf("Index: %d: ", j);
+            printf("Classification for %d: ", j);
             for (int k = 0; k < k_max; k++)
                 printf("%d, ", classifications[k]);
+            printf("\n");
             printf("\n");
         }
 
