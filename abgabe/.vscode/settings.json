@@ -1,5 +1,7 @@
 {
   "files.associations": {
+    "*.env.local": "env",
+    "*.env.local.example": "env",
     "dll.h": "c",
     "bbuschkaemper_array2d_macros.h": "c",
     "unistd.h": "c",
@@ -40,6 +42,7 @@
     "limits": "c",
     "ostream": "c",
     "stdexcept": "c",
-    "streambuf": "c"
+    "streambuf": "c",
+    "iterator": "c"
   }
 }
