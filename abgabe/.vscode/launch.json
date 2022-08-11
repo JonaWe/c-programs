@@ -9,7 +9,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${fileDirname}/${fileBasenameNoExtension}",
-      "args": ["hsl_codebook.txt", "10", "5", "3", "20"],
+      "args": ["hsl_codebook.txt", "10000", "10", "5", "0"],
       "stopAtEntry": false,
       "cwd": "${fileDirname}",
       "environment": [],

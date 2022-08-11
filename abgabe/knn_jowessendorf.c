@@ -140,8 +140,6 @@ void *worker_function(void *args)
 
 void thread_pool_init(thread_pool_t *thread_pool, int thread_count)
 {
-    printf("Number of worker threads %d\n", thread_count);
-
     // initialize the mutex locks and conditions
     pthread_mutex_init(&queue_mutex, NULL);
     pthread_mutex_init(&finished_queue_mutex, NULL);
@@ -229,6 +227,14 @@ typedef struct neighbor_t
     double distance;
 } neighbor_t;
 
+typedef struct func_args_t
+{
+    vector_t **data;
+    int index;
+    int *array;
+    int phase;
+} func_args_t;
+
 long n;
 long n_max;
 int k_max;
@@ -258,7 +264,8 @@ void read_input(char *filename, int n, vector_t **data)
     }
 }
 
-void calc_blockbounds(interval_t *blocks) {
+void calc_blockbounds(interval_t *blocks)
+{
     int rem = n % b;
     int block_size = (n - rem) / b;
     int shift = 0;
@@ -282,7 +289,7 @@ double calc_distance(vector_t *v1, vector_t *v2)
     return distance;
 }
 
-int *find_k_nearest_neighbors(vector_t **data, int index, int *bounds)
+int *find_k_nearest_neighbors(func_args_t *args)
 {
     neighbor_t *nearest_neighbors = malloc(sizeof(neighbor_t) * k_max);
     for (int i = 0; i < k_max; i++)
@@ -292,9 +299,9 @@ int *find_k_nearest_neighbors(vector_t **data, int index, int *bounds)
     }
     for (int i = 0; i < n; i++)
     {
-        if (bounds[0] <= i && i <= bounds[1])
+        if (args->array[0] <= i && i <= args->array[1])
             continue;
-        double d = calc_distance(data[i], data[i]);
+        double d = calc_distance(args->data[args->index], args->data[i]);
         for (int j = 0; j < k_max; j++)
             if (nearest_neighbors[j].index == -1 || d < nearest_neighbors[j].distance)
             {
@@ -311,7 +318,7 @@ int *find_k_nearest_neighbors(vector_t **data, int index, int *bounds)
     return indexes;
 }
 
-int *get_classification(vector_t **data, int index, int *neighbors)
+int *get_classification(func_args_t *args)
 {
     int *classifications = malloc(sizeof(int) * k_max);
     for (int k = 0; k < k_max; k++)
@@ -320,7 +327,7 @@ int *get_classification(vector_t **data, int index, int *neighbors)
         for (int i = 0; i < classes; i++)
             class_cout[i] = 0;
         for (int i = 0; i <= k; i++)
-            class_cout[data[neighbors[i]]->class]++;
+            class_cout[args->data[args->array[i]]->class]++;
 
         int max_index = 0;
         for (int i = 0; i < classes; i++)
@@ -331,20 +338,27 @@ int *get_classification(vector_t **data, int index, int *neighbors)
     return classifications;
 }
 
-int *is_classification_correct(vector_t **data, int index, int* classification) {
+int *is_classification_correct(func_args_t *args)
+{
     int *correct = malloc(sizeof(int) * k_max);
-    for (int k = 0; k < k_max; k++) {
-        correct[k] = classification[k] == data[index]->class;
+    for (int k = 0; k < k_max; k++)
+    {
+        correct[k] = args->array[k] == args->data[args->index]->class;
     }
 
     return correct;
 }
 
-typedef struct my_args {
-    vector_t **data;
-    int index;
-    int *array;
-} my_args;
+void print_ks_and_best_k(int *accuracy)
+{
+    for (int k = 0; k < k_max; k++)
+        printf("%d %lf\n", k + 1, (double)accuracy[k] / (double)n);
+    int best_k = 0;
+    for (int i = 0; i < k_max; i++)
+        if (accuracy[i] >= accuracy[best_k])
+            best_k = i;
+    printf("%d\n", best_k + 1);
+}
 
 int main(int argc, char **argv)
 {
@@ -365,7 +379,8 @@ int main(int argc, char **argv)
 
     read_input(filename, n, data);
 
-    if (n_threads == -1) {
+    if (n_threads == -1)
+    {
         printf("Only loading data file\n");
         exit(0);
     }
@@ -373,97 +388,87 @@ int main(int argc, char **argv)
     interval_t *block_indices = malloc(sizeof(interval_t) * b);
     calc_blockbounds(block_indices);
 
-    if (n_threads == 0) {
+    if (n_threads == 0)
+    {
         int *class_correct = malloc(sizeof(int) * k_max);
 
-        for (int k = 0; k < k_max; k++) {
+        for (int k = 0; k < k_max; k++)
+        {
             class_correct[k] = 0;
         }
 
         for (int i = 0; i < b; i++)
             for (int j = block_indices[i].lower; j <= block_indices[i].upper; j++)
             {
+                func_args_t *arg = malloc(sizeof(func_args_t));
                 int *current_bounds = malloc(sizeof(int) * 2);
                 current_bounds[0] = block_indices[i].lower;
                 current_bounds[1] = block_indices[i].upper;
-                int *neighbors = find_k_nearest_neighbors(data, j, current_bounds);
-                /* printf("Nearest neighbor for %d: ", j); */
-                /* for (int k = 0; k < k_max; k++) */
-                /*     printf("%d, ", neighbors[k]); */
-                /* printf("\n"); */
-                int *classifications = get_classification(data, j, neighbors);
-                /* printf("Classification for %d: ", j); */
-                /* for (int k = 0; k < k_max; k++) */
-                /*     printf("%d, ", classifications[k]); */
-                /* printf("\n"); */
-                /* printf("\n"); */
-                int *correct = is_classification_correct(data, j, classifications);
-                /* printf("Classification correct for %d: ", j); */
-                for (int k = 0; k < k_max; k++)
-                    class_correct[k] += correct[k];
-                /* printf("%d, ", correct[k]); */
-                /* printf("\n"); */
-                /* printf("\n"); */
-            }
-
-        for (int k = 0; k < k_max; k++) {
-            printf("%d %lf\n", k + 1, (double) class_correct[k] / (double) n);
-        }
-    } else {
-        thread_pool_t *thread_pool = malloc(sizeof(thread_pool_t) + n_threads * sizeof(pthread_t));
-
-
-        thread_pool_init(thread_pool, n_threads);
-        /* thread_pool_enqueue(thread_pool, test_function, test_string); */
-        int *class_correct = malloc(sizeof(int) * k_max);
-
-        for (int k = 0; k < k_max; k++) {
-            class_correct[k] = 0;
-        }
-
-        for (int i = 0; i < b; i++)
-            for (int j = block_indices[i].lower; j <= block_indices[i].upper; j++)
-            {
-                int *current_bounds = malloc(sizeof(int) * 2);
-                current_bounds[0] = block_indices[i].lower;
-                current_bounds[1] = block_indices[i].upper;
-                my_args *arg = malloc(sizeof(my_args));
                 arg->index = j;
                 arg->data = data;
                 arg->array = current_bounds;
-                thread_pool_enqueue(thread_pool, find_k_nearest_neighbors, arg);
-            }
-        for (int i = 0; i < b; i++)
-            for (int j = block_indices[i].lower; j <= block_indices[i].upper; j++)
-            {
-                Task *finished = thread_pool_wait(thread_pool);
-                ((my_args*) finished->args)->array = finished->result;
-                thread_pool_enqueue(thread_pool, get_classification, finished->args);
-            }
-        for (int i = 0; i < b; i++)
-            for (int j = block_indices[i].lower; j <= block_indices[i].upper; j++)
-            {
-                Task *finished = thread_pool_wait(thread_pool);
-                ((my_args*) finished->args)->array = finished->result;
-                thread_pool_enqueue(thread_pool, is_classification_correct, finished->args);
-            }
-        for (int i = 0; i < b; i++)
-            for (int j = block_indices[i].lower; j <= block_indices[i].upper; j++)
-            {
-                Task *finished = thread_pool_wait(thread_pool);
+                int *neighbors = find_k_nearest_neighbors(arg);
+
+                arg->array = neighbors;
+                int *classifications = get_classification(arg);
+
+                arg->array = classifications;
+                int *correct = is_classification_correct(arg);
+
                 for (int k = 0; k < k_max; k++)
-                    class_correct[k] += ((int*) finished->result)[k];
-                /* printf("%d, ", correct[k]); */
-                /* printf("\n"); */
-                /* printf("\n"); */
+                    class_correct[k] += correct[k];
             }
 
-        for (int k = 0; k < k_max; k++) {
-            printf("%d %lf\n", k + 1, (double) class_correct[k] / (double) n);
+        print_ks_and_best_k(class_correct);
+    }
+    else
+    {
+        thread_pool_t *thread_pool = malloc(sizeof(thread_pool_t) + n_threads * sizeof(pthread_t));
+
+        thread_pool_init(thread_pool, n_threads);
+        int *class_correct = malloc(sizeof(int) * k_max);
+
+        for (int k = 0; k < k_max; k++)
+        {
+            class_correct[k] = 0;
         }
 
-        /* Task *task = thread_pool_wait(thread_pool); */
-        /* printf("result: %d\n", *((int *)task->result)); */
+        for (int i = 0; i < b; i++)
+        {
+            for (int j = block_indices[i].lower; j <= block_indices[i].upper; j++)
+            {
+                int *current_bounds = malloc(sizeof(int) * 2);
+                current_bounds[0] = block_indices[i].lower;
+                current_bounds[1] = block_indices[i].upper;
+                func_args_t *arg = malloc(sizeof(func_args_t));
+                arg->index = j;
+                arg->data = data;
+                arg->array = current_bounds;
+                arg->phase = 1;
+                thread_pool_enqueue(thread_pool, (void *)find_k_nearest_neighbors, arg);
+            }
+        }
+        for (int i = 0; i < 3 * n; i++)
+        {
+            Task *finished = thread_pool_wait(thread_pool);
+            ((func_args_t *)finished->args)->array = finished->result;
+            int phase = ++((func_args_t *)finished->args)->phase;
+            if (phase == 2)
+            {
+                thread_pool_enqueue(thread_pool, (void *)get_classification, finished->args);
+            }
+            else if (phase == 3)
+            {
+                thread_pool_enqueue(thread_pool, (void *)is_classification_correct, finished->args);
+            }
+            else
+            {
+                for (int k = 0; k < k_max; k++)
+                    class_correct[k] += ((int *)finished->result)[k];
+            }
+        }
+
+        print_ks_and_best_k(class_correct);
 
         thread_pool_shutdown(thread_pool);
     }
