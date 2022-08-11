@@ -323,6 +323,15 @@ int *get_classification(vector_t **data, vector_t *vector, int *neighbors)
     return classifications;
 }
 
+int *is_classification_correct(vector_t *vector, int* classification) {
+    int *correct = malloc(sizeof(int) * k_max);
+    for (int k = 0; k < k_max; k++) {
+        correct[k] = classification[k] == vector->class;
+    }
+
+    return correct;
+}
+
 int main(int argc, char **argv)
 {
     COND_ERR(argc != 6, "ERROR: Incorrect usage: knn_jowessendorf <filename> <n> <k_max> <b> <n_threads>\n")
@@ -342,8 +351,6 @@ int main(int argc, char **argv)
 
     read_input(filename, n, data);
 
-    // printf("%lf %lf %lf\n", data[1]->coordinates[0], data[1]->coordinates[1], data[1]->coordinates[2]);
-
     int rem = n % b;
     int block_size = (n - rem) / b;
     interval_t block_indices[b];
@@ -359,21 +366,38 @@ int main(int argc, char **argv)
         block_indices[i].upper = (i + 1) * block_size + shift - 1;
     }
 
+    int *class_correct = malloc(sizeof(int) * k_max);
+
+    for (int k = 0; k < k_max; k++) {
+        class_correct[k] = 0;
+    }
+
     for (int i = 0; i < b; i++)
         for (int j = block_indices[i].lower; j <= block_indices[i].upper; j++)
         {
             int *neighbors = find_k_nearest_neighbors(data, data[j], block_indices, i);
-            printf("Nearest neighbor for %d: ", j);
-            for (int k = 0; k < k_max; k++)
-                printf("%d, ", neighbors[k]);
-            printf("\n");
+            /* printf("Nearest neighbor for %d: ", j); */
+            /* for (int k = 0; k < k_max; k++) */
+            /*     printf("%d, ", neighbors[k]); */
+            /* printf("\n"); */
             int *classifications = get_classification(data, data[j], neighbors);
-            printf("Classification for %d: ", j);
+            /* printf("Classification for %d: ", j); */
+            /* for (int k = 0; k < k_max; k++) */
+            /*     printf("%d, ", classifications[k]); */
+            /* printf("\n"); */
+            /* printf("\n"); */
+            int *correct = is_classification_correct(data[j], classifications);
+            /* printf("Classification correct for %d: ", j); */
             for (int k = 0; k < k_max; k++)
-                printf("%d, ", classifications[k]);
-            printf("\n");
-            printf("\n");
+                class_correct[k] += correct[k];
+                /* printf("%d, ", correct[k]); */
+            /* printf("\n"); */
+            /* printf("\n"); */
         }
+
+    for (int k = 0; k < k_max; k++) {
+        printf("%d %lf\n", k + 1, (double) class_correct[k] / (double) n);
+    }
 
     thread_pool_t *thread_pool = malloc(sizeof(thread_pool_t) + n_threads * sizeof(pthread_t));
 
