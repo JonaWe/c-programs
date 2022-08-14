@@ -70,25 +70,25 @@ typedef struct task_queue_t {
 } task_queue_t;
 
 typedef struct {
+    task_queue_t *tasks;
+    task_queue_t *finished_tasks;
     int size;
     pthread_t threads[];
 } thread_pool_t;
 
 pthread_mutex_t queue_mutex;
 pthread_cond_t queue_cond;
-task_queue_t *task_queue;
 
 pthread_mutex_t finished_queue_mutex;
 pthread_cond_t finished_queue_cond;
-task_queue_t *finished_task_queue;
 
-void *worker_function(void *args) {
+void *worker_function(thread_pool_t *thread_pool) {
     while (1) {
         pthread_mutex_lock(&queue_mutex);
-        while (list_empty(&task_queue->head))
+        while (list_empty(&thread_pool->tasks->head))
             pthread_cond_wait(&queue_cond, &queue_mutex);
 
-        task_queue_t *current = (task_queue_t *)list_del(task_queue->head.next);
+        task_queue_t *current = (task_queue_t *)list_del(thread_pool->tasks->head.next);
         Task *task = current->task;
         pthread_mutex_unlock(&queue_mutex);
 
@@ -96,7 +96,7 @@ void *worker_function(void *args) {
         task->result = result;
 
         pthread_mutex_lock(&finished_queue_mutex);
-        list_add_tail(&current->head, &finished_task_queue->head);
+        list_add_tail(&current->head, &thread_pool->finished_tasks->head);
         pthread_mutex_unlock(&finished_queue_mutex);
 
         pthread_cond_signal(&finished_queue_cond);
@@ -111,17 +111,17 @@ void thread_pool_init(thread_pool_t *thread_pool, int thread_count) {
     pthread_cond_init(&finished_queue_cond, NULL);
 
     // initialize the task queue
-    task_queue = malloc(sizeof(task_queue_t));
-    list_init(&task_queue->head);
+    thread_pool->tasks = malloc(sizeof(task_queue_t));
+    list_init(&thread_pool->tasks->head);
 
     // initialize the finished task queue
-    finished_task_queue = malloc(sizeof(task_queue_t));
-    list_init(&finished_task_queue->head);
+    thread_pool->finished_tasks = malloc(sizeof(task_queue_t));
+    list_init(&thread_pool->finished_tasks->head);
 
     // create the threads
     thread_pool->size = thread_count;
     for (int i = 0; i < thread_pool->size; i++)
-        if (pthread_create(&(thread_pool->threads[i]), NULL, worker_function, NULL) != 0)
+        if (pthread_create(&(thread_pool->threads[i]), NULL, (void*) worker_function, thread_pool) != 0)
             fprintf(stderr, "Thread creation failed!\n");
 }
 
@@ -134,7 +134,7 @@ void thread_pool_enqueue(thread_pool_t *thread_pool, void *(*function)(void *), 
     new_element->task = task;
 
     pthread_mutex_lock(&queue_mutex);
-    list_add_tail(&new_element->head, &task_queue->head);
+    list_add_tail(&new_element->head, &thread_pool->tasks->head);
     pthread_mutex_unlock(&queue_mutex);
 
     pthread_cond_signal(&queue_cond);
@@ -142,10 +142,10 @@ void thread_pool_enqueue(thread_pool_t *thread_pool, void *(*function)(void *), 
 
 Task *thread_pool_wait(thread_pool_t *thread_pool) {
     pthread_mutex_lock(&finished_queue_mutex);
-    while (list_empty(&finished_task_queue->head))
+    while (list_empty(&thread_pool->finished_tasks->head))
         pthread_cond_wait(&finished_queue_cond, &finished_queue_mutex);
 
-    task_queue_t *current = (task_queue_t *)list_del(finished_task_queue->head.next);
+    task_queue_t *current = (task_queue_t *)list_del(thread_pool->finished_tasks->head.next);
     pthread_mutex_unlock(&finished_queue_mutex);
     return current->task;
 }
@@ -284,12 +284,12 @@ int *is_classification_correct(func_args_t *args) {
 
 void print_ks_and_best_k(int *accuracy) {
     for (int k = 0; k < k_max; k++)
-        printf("%d %lf\n", k + 1, (double)accuracy[k] / (double)n);
+        printf("%d %lf\n", k, (double)accuracy[k] / (double)n);
     int best_k = 0;
     for (int i = 0; i < k_max; i++)
         if (accuracy[i] >= accuracy[best_k])
             best_k = i;
-    printf("%d\n", best_k + 1);
+    printf("%d\n", best_k);
 }
 
 int main(int argc, char **argv) {
