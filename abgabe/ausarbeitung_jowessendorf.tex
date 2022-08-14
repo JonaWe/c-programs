@@ -28,13 +28,13 @@
     Parallelisierung des KNN-Verfahrens}\\[3cm]
 \end{center}
 
-\noindent{\bf Name:} Mustermann\\
+\noindent{\bf Name:} Wessendorf\\
 
-\noindent{\bf Vorname:} Erika\\
+\noindent{\bf Vorname:} Jona\\
 
-\noindent{\bf Studiengang:} Angewandte Scholastik\\
+\noindent{\bf Studiengang:} KoI\\
 
-\noindent{\bf Matrikelnummer:} 0123456789\\[3cm]
+\noindent{\bf Matrikelnummer:} 3217753\\[3cm]
 
 \noindent Hiermit erkläre ich, dass ich das Programm und die
 vorliegende Ausarbeitung selbstständig verfasst habe. Ich habe keine
@@ -51,237 +51,130 @@ habe.
 \newpage
 \setcounter{page}{1}
 
-Hinweis: ``So macht man Anführungszeichen'', "aber so geht es nicht".
-
 \section{Thread-Pool}
 
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
+Da die vier zu implementierenden Funktionen des Thread-Pools alle die
+\texttt{thread\_pool\_t} Struktur nutzen, werde ich zuerst erläutern wie diese aufgebaut ist.
+In dieser wird in einem Array eine Referenz zu allen threads gespeichert.
+Dazu wird dann auch die Größe des Thread-Pools gespeichert.
+Außerdem werden zwei Queues von Tasks gespeichert.
+Die eine enthält alle unbearbeiteten Tasks und die andere erhält alle, die bereits ausgeführt wurden.
+
+In der \texttt{thread\_pool\_init} Methode werden alle benötigten Threads einmalig erstellt.
+Um geschützt auf Variablen zuzugreifen, werden Locks und Conditional Variabeln initialisiert.
+Außerdem werden noch die beiden Queues initialisiert.
+Beim Starten der Threads wird die \texttt{worker\_function} zum Ausführen übergeben.
+Diese wartet immer so lange bis mindestens ein Task in der Queue ist,
+führt diesen aus und speichert die Ergebnisse in der Queue der erledigten Tasks.
+
+
+Die \texttt{thread\_pool\_enqueue} Methode erstellt einen neuen Task und speicher diesen in der Queue der zu erledigenden Tasks.
+Anschließend signalisiert diese den Workerfunctions, dass ein neuer Task zur Verfügung steht.
+
+Die \texttt{thread\_pool\_wait} Methode gibt das Ergebniss eines berechneten Tasks zurück.
+Dazu wartet sie so lange, bis die Queue der erledigten Tasks nicht leer ist.
+Sobald mindestens ein Element vorhanden ist, wird die Referenz zu diesem zurückgegeben und es wird aus der Queue entfernt.
+
+
+Die \texttt{thread\_pool\_shutdown} Methode beendet alle gestarteten Threads und zerstört die Mutex Lock und Conditional Variabeln.
 
 \section{Ablauf}
 
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
+In der ersten Phase werden für alle Daten (Vektorn) die k-nächsten Nachbarn gefunden und jeweils in einem sortiertem Array gespeichert.
+Die zweite Phase berechnet die Klassifikation für jeden Verktor in Abhängigkeit von k.
+Dazu wird jeweils das Array mit den k-nächsten Nachbarn genutzt und es wird für jedes k die entsprechende Klassifikation berechnet.
+So wird auch in dieser Phase ein Array von ints mit der Länge k zurückgegeben.
+Die letzte Phase überprüft für jeden Vektor jede Klassifikation in Abhängigkeit von k.
+Stimmen diese mit der eigenen Klassifikation überein, so wird 1 gespeichert, sonst 0.
 
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
+Nach Beendigung der drei Phasen wird für jedes k gezählt wie viele Vektoren richtig
+geschätzt wurden und diese Anzahl wird durch die Gesamtanzahl der Vektoren geteilt.
 
 \section{Aufteilung innerhalb der Berechnungsphasen}
 
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
+Für die Zuweisung der Aufgaben wird die Datenstruktur \texttt{func\_args\_t} genutzt.
+Diese speichert ein Array mit Pointern auf Datensätze (Vektoren).
+Dazu speichert sie den Index des für den Rechenschritt aktuellen Vektors.
+Außerdem wird ein Array von ints mit der Größe \texttt{2} (in Phase 1) oder \texttt{k\_max} (in Phase 2-3) gespeichert.
+In der ersten Phase wird das Array genutzt, um die Grenzen des Intervalls des Testblocks zu übergeben.
+Die zweite Phase nutzt das Array für die Indices der k-nächsten Nachbarn.
+Die dritte Phase nutzt das Array für die Klasse der k-nächsten Nachbarn.
+Zuletzt wird die aktuelle Berechnungsphase gespeichert.
+
+% Bei der synchronen Berechnung wird für jeden Datensatz sequentiellen hintereinander jede Phase durchgegangen.
 
 \section{Koordination der Berechnungsphasen}
 
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
+Zuerst wird für jeden Vektor der erste Berechnungsschritt im Thread-Pool enqueued.
+Danach wird eine Schleife mit der Länge 3 * n durchlaufen, in der jeweils auf einen fertig bearbeiteten Task gewarted wird.
+Die Phase des fertig berechneten Tasks wird um 1 inkrementiert und es wird ein neuer Task mit der funktion für die nächste Phase enqueued.
+Dabei wird der Rückgabewert der vorherigen Phase zum Inputarray für die nächste Phase.
+Die Parameter für den Index des aktuellen Elements und für die Datenvektoren bleiben die gleichen.
 
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
 
 \section{Schwachstellen und Verbesserungsmöglichkeiten}
 
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
+Für sehr große n ist das Programm extrem langsam, da für jeden Vektor die Distanz zu allen anderen Vektoren berechnet.
+Da ich die Ergebnisse nicht speicher wird jede Distanz zweifach berechnet.
+Hier könnte es also möglich durch mehr Speichernutzung die Laufzeit des Algorithmus zu verringern.
+
+\newpage
 
 \section{Analyse der Laufzeiten}
 
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
+Bei der Analyse der Laufzeit habe ich als n \texttt{50.000} gewählt.
+Das Testsystem verfügt über einen Prozessor mit 6 Kernen, die sich in 12 Threads aufteilen lassen.
+In der folgenden Tabelle sind die Laufzeiten relativ zur Laufzeit bei der sequentiellen Abarbeitung dargestellt.
 
+\begin{table}[h]
+\begin{tabular}{ll}
+n\_threads & time relative to n\_threads = 0\\
+0          & 1\\
+1          & 1,01\\
+2          & 0,51\\
+4          & 0,26\\
+6          & 0,18\\
+8          & 0,17\\
+10         & 0,16\\
+12         & 0,15\\
+14         & 0,15\\
+20         & 0,15\\
+100        & 0,16\\
+1000       & 0,17
+\end{tabular}
+\end{table}
+
+Es ist zu erkennen, dass bei der Verwendung von nur einem Thread das Programm etwas langsamer läuft, als bei der sequentiellen Abarbeitung.
+Dies liegt vermutlich daran, dass der Thread von System erstellt werden muss, was mehr Zeit braucht.
+Ab einer Anzahl von zwei Threads ist eine Verringerung der Laufzeit bis zu einer Anzahl von 12 Threads zu sehen.
+Bei mehr als 12 Threads verändert sich die Laufzeit erstmal nicht so viel.
+Erst wenn die Anzahl der Threads deutlich größer wird, erhöht sich die benötigte Zeit wieder.
+Dies liegt vermutlich daran, dass es mehr Zeit braucht diese Threads zu erstellen.
+
+% \begin{table}[h]
+% \begin{tabular}{lll}
+% n\_threads & time relative to n\_threads = 0 &       \\
+% 0          & 1        & 29,2  \\
+% 1          & 1,01     & 29,4  \\
+% 2          & 0,51     & 14,9  \\
+% 4          & 0,26     & 7,5   \\
+% 6          & 0,18     & 5,2   \\
+% 8          & 0,17     & 4,9   \\
+% 10         & 0,16     & 4,6   \\
+% 12         & 0,15     & 4,3   \\
+% 14         & 0,15     & 4,3   \\
+% 20         & 0,15     & 4,3   \\
+% 100        & 0,16     & 4,4   \\
+% 1000       & 0,17     & 5,0  
+% \end{tabular}
+% \end{table}
 \section{Begrenzende Faktoren}
 
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
-Eins, zwo drei vier fünf, sechs sieben acht neun.
+Wie es bei der Analyse der Laufzeit schon angedeutet wurde, ist der Wert von \texttt{n\_threads} auf dem Testsystem bei 12 optimal.
+Dies ist der Fall, da der Prozessor nur über 12 Threads verfügt. Es können also nicht mehr als 12 Threads gleichzeitig auf dem System ausgeführt werden.
+Deshalb wird es ab 12 nicht mehr schneller.
 
-\noindent Dies kann gelöscht werden:
-
-\noindent textwidth in cm: \printinunitsof{cm}\prntlen{\textwidth}
-
-\noindent textheight in cm: \printinunitsof{cm}\prntlen{\textheight}
+So ist also der begrenzende Faktor also die Anzahl der Threads über die, die CPU des Testcomputers verfügt.
 
 \newpage
 \thispagestyle{empty}
@@ -290,14 +183,8 @@ Eins, zwo drei vier fünf, sechs sieben acht neun.
 
 {\parindent0pt%
   
-[1] Möller, Ralf: Skript Betriebssysteme, AG Technische Informatik,
-Technische Fakultät, Universität Bielefeld, Sommersemester 2022
-
-[2] Einstein, Albert: Zur Elektrodynamik bewegter K{\"o}rper. Annalen
-der Physik 322(10):891-921, 1905
-
-[3] Wikipedia entry ``K-nearest neighbors algorithm'', konsultiert am
-20. Juli 2022,
+[1] Wikipedia entry ``K-nearest neighbors algorithm'', konsultiert am
+03. August 2022,
 \url{https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm}
 
 }
